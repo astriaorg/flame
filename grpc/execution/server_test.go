@@ -324,6 +324,8 @@ func TestExecutionServiceServerV1Alpha2_ExecuteBlock(t *testing.T) {
 			if tt.expectedReturnCode > 0 {
 				require.NotNil(t, err, "ExecuteBlock should return an error")
 				require.Equal(t, tt.expectedReturnCode, status.Code(err), "ExecuteBlock failed")
+			} else {
+				require.Nil(t, err, "ExecuteBlock should not return an error")
 			}
 			if err == nil {
 				require.NotNil(t, executeBlockRes, "ExecuteBlock response is nil")
