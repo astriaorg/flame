@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
@@ -18,6 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"math/big"
 	"testing"
+	"time"
 )
 
 func TestExecutionService_GetGenesisInfo(t *testing.T) {
@@ -302,6 +304,11 @@ func TestExecutionServiceServerV1Alpha2_ExecuteOptimisticBlock(t *testing.T) {
 				marshalledTxs = append(marshalledTxs, depositTx)
 			}
 
+			// subscribe to optimistic head event
+			optimisticHeadCh := make(chan core.ChainOptimisticHeadEvent, 1)
+			optimsticHeadSub := ethservice.BlockChain().SubscribeChainOptimisticHeadEvent(optimisticHeadCh)
+			defer optimsticHeadSub.Unsubscribe()
+
 			baseBlockReq := &sequencerblockv1alpha1.BaseBlock{
 				Timestamp: &timestamppb.Timestamp{
 					Seconds: int64(tt.timestamp),
@@ -342,8 +349,17 @@ func TestExecutionServiceServerV1Alpha2_ExecuteOptimisticBlock(t *testing.T) {
 				block := ethservice.BlockChain().GetBlockByHash(optimisticBlock.Hash())
 				require.NotNil(t, block, "Optimistic block not found in blockchain")
 				require.Equal(t, uint64(res.Number), block.NumberU64(), "Block number is not correct")
-			}
 
+				// timeout for optimistic head event
+				select {
+				case blockEvent := <-optimisticHeadCh:
+					require.NotNil(t, blockEvent, "Optimistic head event not received")
+					require.Equal(t, block.Hash(), blockEvent.Block.Hash(), "Optimistic head event block hash is not correct")
+					require.Equal(t, block.NumberU64(), blockEvent.Block.NumberU64(), "Optimistic head event block number is not correct")
+				case <-time.After(2 * time.Second):
+					require.FailNow(t, "Optimistic head event not received")
+				}
+			}
 		})
 	}
 }
