@@ -68,10 +68,10 @@ func validateAndUnmarshalSequencerTx(
 				//
 				// the fees are spent from the "bridge account" which is not actually a real account, but is instead some
 				// address defined by consensus, so the gas cost is not actually deducted from any account.
-				Gas:  16000,
-				To:   &bac.Erc20Asset.ContractAddress,
-				Data: calldata,
-				SourceTransactionId: *deposit.SourceTransactionId,
+				Gas:                    16000,
+				To:                     &bac.Erc20Asset.ContractAddress,
+				Data:                   calldata,
+				SourceTransactionId:    *deposit.SourceTransactionId,
 				SourceTransactionIndex: deposit.SourceActionIndex,
 			}
 
@@ -80,11 +80,11 @@ func validateAndUnmarshalSequencerTx(
 		}
 
 		txdata := types.DepositTx{
-			From:  bridgeSenderAddress,
-			To:    &recipient,
-			Value: amount,
-			Gas:   0,
-			SourceTransactionId: *deposit.SourceTransactionId,
+			From:                   bridgeSenderAddress,
+			To:                     &recipient,
+			Value:                  amount,
+			Gas:                    0,
+			SourceTransactionId:    *deposit.SourceTransactionId,
 			SourceTransactionIndex: deposit.SourceActionIndex,
 		}
 		return types.NewTx(&txdata), nil
@@ -116,6 +116,17 @@ func validateStaticExecuteBlockRequest(req *astriaPb.ExecuteBlockRequest) error 
 	}
 	if req.Timestamp == nil {
 		return fmt.Errorf("Timestamp cannot be nil")
+	}
+
+	return nil
+}
+
+func validateStaticExecuteOptimisticBlockRequest(req *sequencerblockv1alpha1.BaseBlock) error {
+	if req.Timestamp == nil {
+		return fmt.Errorf("Timestamp cannot be nil")
+	}
+	if len(req.SequencerBlockHash) == 0 {
+		return fmt.Errorf("SequencerBlockHash cannot be empty")
 	}
 
 	return nil
