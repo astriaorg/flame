@@ -73,14 +73,14 @@ func TestExecutionService_GetBlock(t *testing.T) {
 			getBlockRequst: &astriaPb.GetBlockRequest{
 				Identifier: &astriaPb.BlockIdentifier{Identifier: &astriaPb.BlockIdentifier_BlockNumber{BlockNumber: 1}},
 			},
-			expectedReturnCode: 0,
+			expectedReturnCode: codes.OK,
 		},
 		{
 			description: "Get block by block hash",
 			getBlockRequst: &astriaPb.GetBlockRequest{
 				Identifier: &astriaPb.BlockIdentifier{Identifier: &astriaPb.BlockIdentifier_BlockHash{BlockHash: ethservice.BlockChain().GetBlockByNumber(4).Hash().Bytes()}},
 			},
-			expectedReturnCode: 0,
+			expectedReturnCode: codes.OK,
 		},
 		{
 			description: "Get block which is not present",
@@ -97,6 +97,8 @@ func TestExecutionService_GetBlock(t *testing.T) {
 			if tt.expectedReturnCode > 0 {
 				require.NotNil(t, err, "GetBlock should return an error")
 				require.Equal(t, tt.expectedReturnCode, status.Code(err), "GetBlock failed")
+			} else {
+				require.Nil(t, err, "GetBlock failed")
 			}
 			if err == nil {
 				require.NotNil(t, blockInfo, "Block not found")
@@ -115,7 +117,6 @@ func TestExecutionService_GetBlock(t *testing.T) {
 				require.Equal(t, block.Hash().Bytes(), blockInfo.Hash, "BlockHash is not correct")
 			}
 		})
-
 	}
 }
 
@@ -138,7 +139,7 @@ func TestExecutionServiceServerV1Alpha2_BatchGetBlocks(t *testing.T) {
 					{Identifier: &astriaPb.BlockIdentifier_BlockHash{BlockHash: ethservice.BlockChain().GetBlockByNumber(5).Hash().Bytes()}},
 				},
 			},
-			expectedReturnCode: 0,
+			expectedReturnCode: codes.OK,
 		},
 		{
 			description: "BatchGetBlocks with block numbers",
@@ -151,7 +152,7 @@ func TestExecutionServiceServerV1Alpha2_BatchGetBlocks(t *testing.T) {
 					{Identifier: &astriaPb.BlockIdentifier_BlockNumber{BlockNumber: 5}},
 				},
 			},
-			expectedReturnCode: 0,
+			expectedReturnCode: codes.OK,
 		},
 		{
 			description: "BatchGetBlocks block not found",
@@ -174,6 +175,8 @@ func TestExecutionServiceServerV1Alpha2_BatchGetBlocks(t *testing.T) {
 			if tt.expectedReturnCode > 0 {
 				require.NotNil(t, err, "BatchGetBlocks should return an error")
 				require.Equal(t, tt.expectedReturnCode, status.Code(err), "BatchGetBlocks failed")
+			} else {
+				require.Nil(t, err, "BatchGetBlocks failed")
 			}
 
 			for _, batchBlock := range batchBlocksRes.GetBlocks() {
@@ -224,7 +227,7 @@ func TestExecutionServiceServerV1Alpha2_ExecuteBlock(t *testing.T) {
 			prevBlockHash:                        ethservice.BlockChain().CurrentSafeBlock().Hash().Bytes(),
 			timestamp:                            ethservice.BlockChain().CurrentSafeBlock().Time + 2,
 			depositTxAmount:                      big.NewInt(0),
-			expectedReturnCode:                   0,
+			expectedReturnCode:                   codes.OK,
 		},
 		{
 			description:                          "ExecuteBlock with 5 txs and a deposit tx",
@@ -233,7 +236,7 @@ func TestExecutionServiceServerV1Alpha2_ExecuteBlock(t *testing.T) {
 			prevBlockHash:                        ethservice.BlockChain().CurrentSafeBlock().Hash().Bytes(),
 			timestamp:                            ethservice.BlockChain().CurrentSafeBlock().Time + 2,
 			depositTxAmount:                      big.NewInt(1000000000000000000),
-			expectedReturnCode:                   0,
+			expectedReturnCode:                   codes.OK,
 		},
 		{
 			description:                          "ExecuteBlock with incorrect previous block hash",
@@ -267,13 +270,11 @@ func TestExecutionServiceServerV1Alpha2_ExecuteBlock(t *testing.T) {
 
 			// create the txs to send
 			// create 5 txs
-			txs := []*types.Transaction{}
 			marshalledTxs := []*sequencerblockv1alpha1.RollupData{}
 			for i := 0; i < 5; i++ {
 				unsignedTx := types.NewTransaction(uint64(i), testToAddress, big.NewInt(1), params.TxGas, big.NewInt(params.InitialBaseFee*2), nil)
 				tx, err := types.SignTx(unsignedTx, types.LatestSigner(ethservice.BlockChain().Config()), testKey)
 				require.Nil(t, err, "Failed to sign tx")
-				txs = append(txs, tx)
 
 				marshalledTx, err := tx.MarshalBinary()
 				require.Nil(t, err, "Failed to marshal tx")
@@ -336,7 +337,6 @@ func TestExecutionServiceServerV1Alpha2_ExecuteBlock(t *testing.T) {
 
 				require.Exactly(t, commitmentStateBeforeExecuteBlock, commitmentStateAfterExecuteBlock, "Commitment state should not be updated")
 			}
-
 		})
 	}
 }
@@ -359,13 +359,11 @@ func TestExecutionServiceServerV1Alpha2_ExecuteBlockAndUpdateCommitment(t *testi
 	require.NotNil(t, previousBlock, "Previous block not found")
 
 	// create 5 txs
-	txs := []*types.Transaction{}
 	marshalledTxs := []*sequencerblockv1alpha1.RollupData{}
 	for i := 0; i < 5; i++ {
 		unsignedTx := types.NewTransaction(uint64(i), testToAddress, big.NewInt(1), params.TxGas, big.NewInt(params.InitialBaseFee*2), nil)
 		tx, err := types.SignTx(unsignedTx, types.LatestSigner(ethservice.BlockChain().Config()), testKey)
 		require.Nil(t, err, "Failed to sign tx")
-		txs = append(txs, tx)
 
 		marshalledTx, err := tx.MarshalBinary()
 		require.Nil(t, err, "Failed to marshal tx")

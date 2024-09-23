@@ -86,7 +86,7 @@ func generateMergeChain(n int, merged bool) (*core.Genesis, []*types.Block, stri
 
 	genesis := &core.Genesis{
 		Config: &config,
-		Alloc: core.GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			testAddr: {Balance: testBalance},
 		},
 		ExtraData:  []byte("test genesis"),
