@@ -58,8 +58,8 @@ type BlockChain interface {
 	// SubscribeChainHeadEvent subscribes to new blocks being added to the chain.
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 
-	// SubscribeChainOpimisticHeadEvent subscribes to new optimistic blocks being added to the chain.
-	SubscribeChainOpimisticHeadEvent(ch chan<- core.ChainOptimisticHeadEvent) event.Subscription
+	// SubscribeChainOptimisticHeadEvent subscribes to new optimistic blocks being added to the chain.
+	SubscribeChainOptimisticHeadEvent(ch chan<- core.ChainOptimisticHeadEvent) event.Subscription
 }
 
 // TxPool is an aggregator for various transaction specific pools, collectively
@@ -187,10 +187,10 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 
 	// Subscribe to chain head events to trigger subpool resets
 	var (
-		newHeadCh  = make(chan core.ChainHeadEvent)
-		newHeadSub = chain.SubscribeChainHeadEvent(newHeadCh)
+		newOptimisticHeadCh  = make(chan core.ChainOptimisticHeadEvent)
+		newOptimisticHeadSub = chain.SubscribeChainOptimisticHeadEvent(newOptimisticHeadCh)
 	)
-	defer newHeadSub.Unsubscribe()
+	defer newOptimisticHeadSub.Unsubscribe()
 
 	// Track the previous and current head to feed to an idle reset
 	var (
@@ -244,7 +244,7 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 		}
 		// Wait for the next chain head event or a previous reset finish
 		select {
-		case event := <-newHeadCh:
+		case event := <-newOptimisticHeadCh:
 			// Chain moved forward, store the head for later consumption
 			newHead = event.Block.Header()
 
