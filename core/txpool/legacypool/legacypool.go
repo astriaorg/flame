@@ -205,13 +205,14 @@ func (config *Config) sanitize() Config {
 // current state) and future transactions. Transactions move between those
 // two states over time as they are received and processed.
 type LegacyPool struct {
-	config      Config
-	chainconfig *params.ChainConfig
-	chain       BlockChain
-	gasTip      atomic.Pointer[uint256.Int]
-	txFeed      event.Feed
-	signer      types.Signer
-	mu          sync.RWMutex
+	config           Config
+	chainconfig      *params.ChainConfig
+	chain            BlockChain
+	gasTip           atomic.Pointer[uint256.Int]
+	txFeed           event.Feed
+	mempoolClearFeed event.Feed
+	signer           types.Signer
+	mu               sync.RWMutex
 
 	astria *astriaOrdered
 
@@ -513,6 +514,12 @@ func (pool *LegacyPool) SubscribeTransactions(ch chan<- core.NewTxsEvent, reorgs
 	// is because the new txs are added to the queue, resurrected ones too and
 	// reorgs run lazily, so separating the two would need a marker.
 	return pool.txFeed.Subscribe(ch)
+}
+
+// SubscribeTransactions registers a subscription for the event which is triggered
+// when the mempool is cleared after a reset
+func (pool *LegacyPool) SubscribeMempoolClearance(ch chan<- core.NewMempoolCleared) event.Subscription {
+	return pool.mempoolClearFeed.Subscribe(ch)
 }
 
 // SetGasTip updates the minimum gas tip required by the transaction pool for a
@@ -1383,7 +1390,7 @@ func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, 
 	// remove any transaction that has been included in the block or was invalidated
 	// because of another transaction (e.g. higher gas price).
 	if reset != nil {
-		pool.clearPendingAndQueued()
+		pool.clearPendingAndQueued(reset.newHead)
 		if reset.newHead != nil {
 			if pool.chainconfig.IsLondon(new(big.Int).Add(reset.newHead.Number, big.NewInt(1))) {
 				pendingBaseFee := eip1559.CalcBaseFee(pool.chainconfig, reset.newHead)
@@ -1731,7 +1738,7 @@ func (pool *LegacyPool) truncateQueue() {
 
 // clearPendingAndQueued removes invalid and processed transactions from the pools
 // it assumes that the pool lock is being held
-func (pool *LegacyPool) clearPendingAndQueued() {
+func (pool *LegacyPool) clearPendingAndQueued(newHead *types.Header) {
 	// Iterate over all accounts and demote any non-executable transactions
 	for addr, list := range pool.queue {
 		dropped, invalids := list.ClearList()
@@ -1765,6 +1772,11 @@ func (pool *LegacyPool) clearPendingAndQueued() {
 			delete(pool.beats, addr)
 		}
 	}
+
+	pool.mempoolClearFeed.Send(core.NewMempoolCleared{
+		NewHead: newHead,
+	})
+
 }
 
 // demoteUnexecutables removes invalid and processed transactions from the pools
