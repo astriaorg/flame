@@ -1729,6 +1729,8 @@ func (pool *LegacyPool) truncateQueue() {
 	}
 }
 
+// clearPendingAndQueued removes invalid and processed transactions from the pools
+// it assumes that the pool lock is being held
 func (pool *LegacyPool) clearPendingAndQueued() {
 	// Iterate over all accounts and demote any non-executable transactions
 	for addr, list := range pool.queue {
