@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/grpc"
 	"math/big"
 	"sync"
 	"time"
@@ -51,7 +52,7 @@ type ExecutionServiceServerV1Alpha2 struct {
 	bridgeAllowedAssets map[string]struct{}                          // a set of allowed asset IDs structs are left empty
 	bridgeSenderAddress common.Address                               // address from which AstriaBridgeableERC20 contracts are called
 
-	nextFeeRecipient common.Address // Fee recipient for the next block
+	feeRecipientContainer *grpc.FeeRecipientContainer // Fee recipient for the next block
 }
 
 var (
@@ -79,7 +80,7 @@ var (
 	commitmentStateUpdateTimer    = metrics.GetOrRegisterTimer("astria/execution/commitment", nil)
 )
 
-func NewExecutionServiceServerV1Alpha2(eth *eth.Ethereum) (*ExecutionServiceServerV1Alpha2, error) {
+func NewExecutionServiceServerV1Alpha2(eth *eth.Ethereum, feeRecipientContainer *grpc.FeeRecipientContainer) (*ExecutionServiceServerV1Alpha2, error) {
 	bc := eth.BlockChain()
 
 	if bc.Config().AstriaRollupName == "" {
@@ -133,7 +134,6 @@ func NewExecutionServiceServerV1Alpha2(eth *eth.Ethereum) (*ExecutionServiceServ
 
 	// To decrease compute cost, we identify the next fee recipient at the start
 	// and update it as we execute blocks.
-	nextFeeRecipient := common.Address{}
 	if bc.Config().AstriaFeeCollectors == nil {
 		log.Warn("fee asset collectors not set, assets will be burned")
 	} else {
@@ -142,18 +142,18 @@ func NewExecutionServiceServerV1Alpha2(eth *eth.Ethereum) (*ExecutionServiceServ
 		for height, collector := range bc.Config().AstriaFeeCollectors {
 			if height <= nextBlock && height > maxHeightCollectorMatch {
 				maxHeightCollectorMatch = height
-				nextFeeRecipient = collector
+				feeRecipientContainer.SetNextFeeRecipient(collector)
 			}
 		}
 	}
 
 	return &ExecutionServiceServerV1Alpha2{
-		eth:                 eth,
-		bc:                  bc,
-		bridgeAddresses:     bridgeAddresses,
-		bridgeAllowedAssets: bridgeAllowedAssets,
-		bridgeSenderAddress: bc.Config().AstriaBridgeSenderAddress,
-		nextFeeRecipient:    nextFeeRecipient,
+		eth:                   eth,
+		bc:                    bc,
+		bridgeAddresses:       bridgeAddresses,
+		bridgeAllowedAssets:   bridgeAllowedAssets,
+		bridgeSenderAddress:   bc.Config().AstriaBridgeSenderAddress,
+		feeRecipientContainer: feeRecipientContainer,
 	}, nil
 }
 
@@ -274,7 +274,7 @@ func (s *ExecutionServiceServerV1Alpha2) ExecuteOptimisticBlock(ctx context.Cont
 		Parent:               softBlock.Hash(),
 		Timestamp:            uint64(req.GetTimestamp().GetSeconds()),
 		Random:               common.Hash{},
-		FeeRecipient:         s.nextFeeRecipient,
+		FeeRecipient:         s.feeRecipientContainer.GetNextFeeRecipient(),
 		OverrideTransactions: txsToProcess,
 	}
 	payload, err := s.eth.Miner().BuildPayload(payloadAttributes)
@@ -365,7 +365,7 @@ func (s *ExecutionServiceServerV1Alpha2) ExecuteBlock(ctx context.Context, req *
 		Parent:               prevHeadHash,
 		Timestamp:            uint64(req.GetTimestamp().GetSeconds()),
 		Random:               common.Hash{},
-		FeeRecipient:         s.nextFeeRecipient,
+		FeeRecipient:         s.feeRecipientContainer.GetNextFeeRecipient(),
 		OverrideTransactions: types.Transactions{},
 	}
 	payload, err := s.eth.Miner().BuildPayload(payloadAttributes)
@@ -400,7 +400,7 @@ func (s *ExecutionServiceServerV1Alpha2) ExecuteBlock(ctx context.Context, req *
 	}
 
 	if next, ok := s.bc.Config().AstriaFeeCollectors[res.Number+1]; ok {
-		s.nextFeeRecipient = next
+		s.feeRecipientContainer.SetNextFeeRecipient(next)
 	}
 
 	log.Info("ExecuteBlock completed", "block_num", res.Number, "timestamp", res.Timestamp)

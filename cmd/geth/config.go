@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/eth/catalyst"
+	"github.com/ethereum/go-ethereum/grpc"
 	"os"
 	"reflect"
 	"runtime"
@@ -206,7 +207,8 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 
 	// Configure gRPC if requested.
 	if ctx.IsSet(utils.GRPCEnabledFlag.Name) {
-		serviceV1a2, err := execution.NewExecutionServiceServerV1Alpha2(eth)
+		feeRecipientContainer := grpc.NewFeeRecipientContainer()
+		serviceV1a2, err := execution.NewExecutionServiceServerV1Alpha2(eth, &feeRecipientContainer)
 		if err != nil {
 			utils.Fatalf("failed to create execution service: %v", err)
 		}

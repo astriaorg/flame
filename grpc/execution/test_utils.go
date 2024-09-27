@@ -2,6 +2,7 @@ package execution
 
 import (
 	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/grpc"
 	"math/big"
 	"testing"
 	"time"
@@ -134,11 +135,12 @@ func setupExecutionService(t *testing.T, noOfBlocksToGenerate int) (*eth.Ethereu
 	genesis, blocks, bridgeAddress, feeCollectorKey := generateMergeChain(noOfBlocksToGenerate, true)
 	ethservice := startEthService(t, genesis)
 
-	serviceV1Alpha1, err := NewExecutionServiceServerV1Alpha2(ethservice)
+	feeRecipientContainer := grpc.NewFeeRecipientContainer()
+	serviceV1Alpha1, err := NewExecutionServiceServerV1Alpha2(ethservice, &feeRecipientContainer)
 	require.Nil(t, err, "can't create execution service")
 
 	feeCollector := crypto.PubkeyToAddress(feeCollectorKey.PublicKey)
-	require.Equal(t, feeCollector, serviceV1Alpha1.nextFeeRecipient, "nextFeeRecipient not set correctly")
+	require.Equal(t, feeCollector, serviceV1Alpha1.feeRecipientContainer.GetNextFeeRecipient(), "feeRecipientContainer not set correctly")
 
 	bridgeAsset := genesis.Config.AstriaBridgeAddressConfigs[0].AssetDenom
 	_, ok := serviceV1Alpha1.bridgeAllowedAssets[bridgeAsset]
