@@ -85,12 +85,6 @@ require (
 )
 
 require (
-	buf.build/gen/go/astria/composer-apis/grpc/go v1.5.1-00000000000000-38847e1b5e62.1 // indirect
-	buf.build/gen/go/astria/composer-apis/protocolbuffers/go v1.34.2-00000000000000-38847e1b5e62.2 // indirect
-	buf.build/gen/go/astria/primitives/grpc/go v1.5.1-20240911152449-eeebd3decdce.1 // indirect
-	buf.build/gen/go/astria/protocol-apis/grpc/go v1.3.0-20240829200558-cd9207200425.3 // indirect
-	buf.build/gen/go/astria/protocol-apis/protocolbuffers/go v1.34.1-20240829200558-cd9207200425.1 // indirect
-	buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-00000000000000-cc224e7076fd.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
 	github.com/DataDog/zstd v1.4.5 // indirect
@@ -156,6 +150,7 @@ require (
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240318140521-94a12d6c2237 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
