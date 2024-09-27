@@ -16,6 +16,8 @@ buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-00000000000000-2d087abb928
 buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-00000000000000-2d087abb928a.1/go.mod h1:JtD9fdNrKKfFU3PcN2yWp1KPGY3LXXYiBqonhHC8p+Y=
 buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-00000000000000-92174628237f.1 h1:3NIFKb087434v4aU/kWOVbiFHXHzURncovppaeNXM/g=
 buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-00000000000000-92174628237f.1/go.mod h1:7WHJyMVqpM4g3Wvlek+es60Ux31xravukjL5aPPPBIA=
+buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-00000000000000-b6d70d470382.1 h1:WR6+XF9kMNUVTylED7+Z9P14mmvC1Psxkzjirucbg0c=
+buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-00000000000000-b6d70d470382.1/go.mod h1:Q4p9Xr77JyY2k7u3bh37EuQhwAf/NfB0V3T3ddPB3Iw=
 buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-20240417015051-8a906cacf3e5.1 h1:ptYyP3KKF0SM/duwqId4982Frd5UP6Q25gu2cV0uByk=
 buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-20240417015051-8a906cacf3e5.1/go.mod h1:I1I1O+mCJI+mS6fEkFNg/H8+5s0OSJggZgv+QkNUe5s=
 buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-20240725205400-4746841755df.1 h1:lsL4XtjWkc9F6ybg5DVEzRjoFcyvxQBG2gjC7n3ZoWk=
@@ -30,6 +32,8 @@ buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-00000000000000
 buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-00000000000000-2d087abb928a.2/go.mod h1:9pffsT2/FaTcK8NIni7MrWD+hx/8YMUkf/L+mMZQLKc=
 buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-00000000000000-92174628237f.2 h1:5Qds9q0sNX+ECyhbsCM64RNGniSJDbou21EE6QRSy+c=
 buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-00000000000000-92174628237f.2/go.mod h1:UJm+OkePRvtYwgonZxftAGlmGoWFS3TwwcE86fmhf14=
+buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-00000000000000-b6d70d470382.2 h1:dfUJy7x2XeMxTqxdq1OhVmEAV7RSiVSHz1VMB/8jbTY=
+buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-00000000000000-b6d70d470382.2/go.mod h1:7gFD0yQ+3qqBTlGLlQcuz0ymEWtB9n0/FoYU0i9Ydug=
 buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-20240417015051-8a906cacf3e5.2/go.mod h1:PMEAM2v9QrEZapsKfreZHrRle1Epc+LyuuUht6k0Fs4=
 buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-20240627184145-202c666b5a8a.2 h1:IYFQwWxQXFovUY/kMnXWaQJ8KJ5uuLOBE0ks2II254c=
 buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.34.2-20240627184145-202c666b5a8a.2/go.mod h1:czHASkeeVmYV4IC0uo9qWDQ0dmEJeC6LfgYWBwSSREI=
@@ -92,6 +96,7 @@ buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-00000000000000-a6f6bb
 buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-00000000000000-a6f6bbf304ca.1/go.mod h1:VIUjhfl0w0RnSsPVoO8vignWRPiPH3NIr51g7B4pqp8=
 buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-00000000000000-b39f8a7c1a92.1 h1:g+tYbw/eDbgL3KEn8oPpIQKJn77g6IUF8064yDS8vbY=
 buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-00000000000000-b39f8a7c1a92.1/go.mod h1:FC41mHxht01sxlgxImkQdXZf9yNbXYP0O0OfTg2BsKA=
+buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-00000000000000-cc224e7076fd.1/go.mod h1:f3Nv/qCZy5s/Fui3y2aZYEZqNhJpLMgJqM0mx0FDyyI=
 buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-00000000000000-ec1676595dd2.1 h1:uf6qxCPp7q4RSBCQmEkTe55HEKHLtx3FTHUQAG9+z3k=
 buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-00000000000000-ec1676595dd2.1/go.mod h1:RB1o4+Veyce+gckigsXSc/dwSRaXRf4nhzzy9bQv9j4=
 buf.build/gen/go/astria/sequencerblock-apis/grpc/go v1.5.1-20240807170122-24ff5bcd4581.1 h1:gFiTuuZgOiBEFSERzlNQln449uuJq1GiWdVgHKofDOs=
@@ -112,6 +117,8 @@ buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-000000000
 buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-00000000000000-a6f6bbf304ca.2/go.mod h1:mwuwdZiuatE+MkpYsAfs1gMCP+IEtaICxc8Vwh4Czvk=
 buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-00000000000000-b39f8a7c1a92.2 h1:LHu7jg+bXzXnlR/O3V5cbx58UxIGsSq/eujKGL/Emmw=
 buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-00000000000000-b39f8a7c1a92.2/go.mod h1:GShpCrRMWSWehIzL2nP8faSYO/x79trwjhlY+mN8dIw=
+buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-00000000000000-cc224e7076fd.2 h1:7J7EoRvACLLcNXzmbeD9Y7sONLRdSmoy6nahcIzTsOk=
+buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-00000000000000-cc224e7076fd.2/go.mod h1:yYHMnMAdLwcqJ5Y9apoYZ2EPq7Nke4TzM7OhMFiSpgU=
 buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-00000000000000-ec1676595dd2.2 h1:NKGcAOXgcVb0uDD6a2rCaYA6nzC8Cn5QoHtjQu/BP3Q=
 buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-00000000000000-ec1676595dd2.2/go.mod h1:6gWyYjLoaDoITt8RAX8J5Qpl09FBQ2/5jk8MvmQN20A=
 buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.34.2-20240417185647-2fe36ce30e97.2 h1:RJbOnfI2HjllleFXrIUG9HmLgzBNcPalBau5xfwpC40=
