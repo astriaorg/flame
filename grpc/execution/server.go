@@ -265,9 +265,6 @@ func (s *ExecutionServiceServerV1Alpha2) StreamBundles(stream optimisticGrpc.Bun
 				totalCost := big.NewInt(0)
 				effectiveTip := cmath.BigMin(pendingTx.GasTipCap(), new(big.Int).Sub(pendingTx.GasFeeCap(), optimisticBlock.BaseFee))
 				totalCost.Add(totalCost, effectiveTip)
-				baseFee := new(big.Int).SetUint64(pendingTx.Gas())
-				baseFee.Mul(baseFee, optimisticBlock.BaseFee)
-				totalCost.Add(totalCost, baseFee)
 
 				marshalledTxs := [][]byte{}
 				marshalledTx, err := pendingTx.MarshalBinary()
