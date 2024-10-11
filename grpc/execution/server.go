@@ -57,6 +57,7 @@ type ExecutionServiceServerV1Alpha2 struct {
 	bridgeAllowedAssets map[string]struct{}                          // a set of allowed asset IDs structs are left empty
 	bridgeSenderAddress common.Address                               // address from which AstriaBridgeableERC20 contracts are called
 
+	// TODO: bharath - we could make this an atomic pointer???
 	nextFeeRecipient common.Address // Fee recipient for the next block
 
 	currentOptimisticSequencerBlock atomic.Pointer[[]byte]
@@ -355,6 +356,10 @@ func (s *ExecutionServiceServerV1Alpha2) ExecuteOptimisticBlock(ctx context.Cont
 	// get the soft block
 	softBlock := s.bc.CurrentSafeBlock()
 	s.commitmentUpdateLock.Unlock()
+
+	s.blockExecutionLock.Lock()
+	nextFeeRecipient := s.nextFeeRecipient
+	s.blockExecutionLock.Unlock()
 
 	// the height that this block will be at
 	height := s.bc.CurrentBlock().Number.Uint64() + 1
