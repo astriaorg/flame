@@ -249,6 +249,7 @@ func (s *ExecutionServiceServerV1Alpha2) StreamExecuteOptimisticBlock(stream opt
 
 	for {
 		msg, err := stream.Recv()
+		// stream has been closed
 		if errors.Is(err, io.EOF) {
 			return nil
 		}
@@ -259,7 +260,7 @@ func (s *ExecutionServiceServerV1Alpha2) StreamExecuteOptimisticBlock(stream opt
 		baseBlock := msg.GetBlock()
 
 		// execute the optimistic block and wait for the mempool clearing event
-		optimisticBlock, err := s.ExecuteOptimisticBlock(context.Background(), baseBlock)
+		optimisticBlock, err := s.ExecuteOptimisticBlock(stream.Context(), baseBlock)
 		if err != nil {
 			return status.Error(codes.Internal, "failed to execute optimistic block")
 		}
@@ -304,7 +305,6 @@ func (s *ExecutionServiceServerV1Alpha2) ExecuteOptimisticBlock(ctx context.Cont
 
 	s.commitmentUpdateLock.Lock()
 	// get the soft block
-	// TODO - we will have to take an update commitment lock here
 	softBlock := s.bc.CurrentSafeBlock()
 	s.commitmentUpdateLock.Unlock()
 
