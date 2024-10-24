@@ -12,6 +12,7 @@ import (
 	"io"
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	optimisticGrpc "buf.build/gen/go/astria/execution-apis/grpc/go/astria/bundle/v1alpha1/bundlev1alpha1grpc"
@@ -57,7 +58,7 @@ type ExecutionServiceServerV1Alpha2 struct {
 
 	nextFeeRecipient common.Address // Fee recipient for the next block
 
-	currentOptimisticSequencerBlock []byte
+	currentOptimisticSequencerBlock atomic.Pointer[[]byte]
 }
 
 var (
@@ -153,15 +154,18 @@ func NewExecutionServiceServerV1Alpha2(eth *eth.Ethereum) (*ExecutionServiceServ
 		}
 	}
 
-	return &ExecutionServiceServerV1Alpha2{
-		eth:                             eth,
-		bc:                              bc,
-		bridgeAddresses:                 bridgeAddresses,
-		bridgeAllowedAssets:             bridgeAllowedAssets,
-		bridgeSenderAddress:             bc.Config().AstriaBridgeSenderAddress,
-		nextFeeRecipient:                nextFeeRecipient,
-		currentOptimisticSequencerBlock: []byte{},
-	}, nil
+	execServiceServerV1Alpha2 := ExecutionServiceServerV1Alpha2{
+		eth:                 eth,
+		bc:                  bc,
+		bridgeAddresses:     bridgeAddresses,
+		bridgeAllowedAssets: bridgeAllowedAssets,
+		bridgeSenderAddress: bc.Config().AstriaBridgeSenderAddress,
+		nextFeeRecipient:    nextFeeRecipient,
+	}
+
+	execServiceServerV1Alpha2.currentOptimisticSequencerBlock.Store(&[]byte{})
+
+	return &execServiceServerV1Alpha2, nil
 }
 
 func (s *ExecutionServiceServerV1Alpha2) GetGenesisInfo(ctx context.Context, req *astriaPb.GetGenesisInfoRequest) (*astriaPb.GenesisInfo, error) {
@@ -272,7 +276,7 @@ func (s *ExecutionServiceServerV1Alpha2) StreamExecuteOptimisticBlock(stream opt
 			if event.NewHead.Hash() != optimisticBlockHash {
 				return status.Error(codes.Internal, "failed to clear mempool after optimistic block execution")
 			}
-			s.currentOptimisticSequencerBlock = baseBlock.SequencerBlockHash
+			s.currentOptimisticSequencerBlock.Store(&baseBlock.SequencerBlockHash)
 			err = stream.Send(&optimsticPb.StreamExecuteOptimisticBlockResponse{
 				Block:                  optimisticBlock,
 				BaseSequencerBlockHash: baseBlock.SequencerBlockHash,
