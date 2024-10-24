@@ -275,9 +275,7 @@ func (s *ExecutionServiceServerV1Alpha2) StreamBundles(stream optimisticGrpc.Bun
 
 				bundle.Fee = totalCost.Uint64()
 				bundle.Transactions = marshalledTxs
-				// TODO: this should be atomic with `StreamExecuteOptimisticBlock` so make it
-				// an atomic pointer
-				bundle.BaseSequencerBlockHash = s.currentOptimisticSequencerBlock
+				bundle.BaseSequencerBlockHash = *s.currentOptimisticSequencerBlock.Load()
 				bundle.PrevRollupBlockHash = optimisticBlock.Hash().Bytes()
 
 				err = stream.Send(&bundle)

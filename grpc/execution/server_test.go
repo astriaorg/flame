@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
@@ -779,7 +780,7 @@ func TestNewExecutionServiceServerV1Alpha2_StreamBundles(t *testing.T) {
 	for _, resp := range mockServerSideStreaming.sentResponses {
 		require.Len(t, resp.Transactions, 1, "Bundle should have 1 tx")
 		require.True(t, bytes.Equal(resp.PrevRollupBlockHash, currentOptimisticBlock.Hash().Bytes()), "PrevRollupBlockHash should match the current optimistic block hash")
-		require.True(t, bytes.Equal(resp.BaseSequencerBlockHash, serviceV1Alpha1.currentOptimisticSequencerBlock), "BaseSequencerBlockHash should match the current optimistic sequencer block hash")
+		require.True(t, bytes.Equal(resp.BaseSequencerBlockHash, *serviceV1Alpha1.currentOptimisticSequencerBlock.Load()), "BaseSequencerBlockHash should match the current optimistic sequencer block hash")
 	}
 }
 
