@@ -23,6 +23,8 @@ type GRPCServerHandler struct {
 	executionServiceServerV1a2 *astriaGrpc.ExecutionServiceServer
 	optimisticExecServ         *optimisticGrpc.OptimisticExecutionServiceServer
 	streamBundleServ           *optimisticGrpc.BundleServiceServer
+
+	enableAuctioneer bool
 }
 
 // NewServer creates a new gRPC server.
@@ -41,11 +43,14 @@ func NewGRPCServerHandler(node *Node, execServ astriaGrpc.ExecutionServiceServer
 		executionServiceServerV1a2: &execServ,
 		optimisticExecServ:         &optimisticExecServ,
 		streamBundleServ:           &streamBundleServ,
+		enableAuctioneer:           cfg.EnableAuctioneer,
 	}
 
 	astriaGrpc.RegisterExecutionServiceServer(execServer, execServ)
-	optimisticGrpc.RegisterOptimisticExecutionServiceServer(optimisticServer, optimisticExecServ)
-	optimisticGrpc.RegisterBundleServiceServer(optimisticServer, streamBundleServ)
+	if cfg.EnableAuctioneer {
+		optimisticGrpc.RegisterOptimisticExecutionServiceServer(optimisticServer, optimisticExecServ)
+		optimisticGrpc.RegisterBundleServiceServer(optimisticServer, streamBundleServ)
+	}
 
 	node.RegisterGRPCServer(serverHandler)
 	return nil
@@ -69,17 +74,20 @@ func (handler *GRPCServerHandler) Start() error {
 		return err
 	}
 
-	// Remove any existing socket file
-	if err := os.RemoveAll(handler.udsEndpoint); err != nil {
-		return err
-	}
-	udsLis, err := net.Listen("unix", handler.udsEndpoint)
-	if err != nil {
-		return err
+	if handler.enableAuctioneer {
+		// Remove any existing socket file
+		if err := os.RemoveAll(handler.udsEndpoint); err != nil {
+			return err
+		}
+		udsLis, err := net.Listen("unix", handler.udsEndpoint)
+		if err != nil {
+			return err
+		}
+		go handler.optimisticServer.Serve(udsLis)
 	}
 
 	go handler.execServer.Serve(tcpLis)
-	go handler.optimisticServer.Serve(udsLis)
+	// TODO - fix this log
 	log.Info("gRPC server started", "tcpEndpoint", handler.tcpEndpoint, "udsEndpoint", handler.udsEndpoint)
 	return nil
 }
@@ -90,7 +98,10 @@ func (handler *GRPCServerHandler) Stop() error {
 	defer handler.mu.Unlock()
 
 	handler.execServer.GracefulStop()
-	handler.optimisticServer.GracefulStop()
+	if handler.enableAuctioneer {
+		handler.optimisticServer.GracefulStop()
+	}
+	// TODO - fix this log
 	log.Info("gRPC server stopped", "tcpEndpoint", handler.tcpEndpoint, "udsEndpoint", handler.udsEndpoint)
 	return nil
 }
