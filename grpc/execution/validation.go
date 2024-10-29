@@ -3,7 +3,6 @@ package execution
 import (
 	"crypto/sha256"
 	"fmt"
-	"math/big"
 
 	astriaPb "buf.build/gen/go/astria/execution-apis/protocolbuffers/go/astria/execution/v1"
 	sequencerblockv1 "buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go/astria/sequencerblock/v1"
