@@ -64,9 +64,9 @@ func (handler *GRPCServerHandler) Start() error {
 	if handler.tcpEndpoint == "" {
 		return nil
 	}
-	if handler.udsEndpoint == "" {
-		return nil
-	}
+	//if handler.udsEndpoint == "" {
+	//	return nil
+	//}
 
 	// Start the gRPC server
 	tcpLis, err := net.Listen("tcp", handler.tcpEndpoint)
