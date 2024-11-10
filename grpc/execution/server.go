@@ -147,7 +147,7 @@ func (s *ExecutionServiceServerV1) ExecuteBlock(ctx context.Context, req *astria
 		log.Error("ExecuteBlock called with invalid ExecuteBlockRequest", "err", err)
 		return nil, status.Error(codes.InvalidArgument, "ExecuteBlockRequest is invalid")
 	}
-	log.Debug("ExecuteBlock called", "prevBlockHash", common.BytesToHash(req.PrevBlockHash), "tx_count", len(req.Transactions), "timestamp", req.Timestamp)
+	log.Info("ExecuteBlock called", "prevBlockHash", common.BytesToHash(req.PrevBlockHash), "tx_count", len(req.Transactions), "timestamp", req.Timestamp)
 	executeBlockRequestCount.Inc(1)
 
 	s.BlockExecutionLock().Lock()

@@ -17,6 +17,7 @@
 package event
 
 import (
+	"github.com/ethereum/go-ethereum/log"
 	"reflect"
 	"sync"
 )
@@ -43,12 +44,17 @@ func (f *FeedOf[T]) init() {
 	f.sendCases = caseList{{Chan: reflect.ValueOf(f.removeSub), Dir: reflect.SelectRecv}}
 }
 
+func (f *FeedOf[T]) GetInbox() []reflect.SelectCase {
+	return f.inbox
+}
+
 // Subscribe adds a channel to the feed. Future sends will be delivered on the channel
 // until the subscription is canceled.
 //
 // The channel should have ample buffer space to avoid blocking other subscribers. Slow
 // subscribers are not dropped.
 func (f *FeedOf[T]) Subscribe(channel chan<- T) Subscription {
+	log.Info("Bharath: feedOf: inbox before subscribing is", "inbox", f.inbox)
 	f.once.Do(f.init)
 
 	chanval := reflect.ValueOf(channel)
@@ -59,7 +65,9 @@ func (f *FeedOf[T]) Subscribe(channel chan<- T) Subscription {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	cas := reflect.SelectCase{Dir: reflect.SelectSend, Chan: chanval}
+	log.Info("Bharath: feedOf: inbox before appending is", "inbox", f.inbox)
 	f.inbox = append(f.inbox, cas)
+	log.Info("Bharath: feedOf: inbox after appending is", "inbox", f.inbox)
 	return sub
 }
 
@@ -98,6 +106,8 @@ func (f *FeedOf[T]) Send(value T) (nsent int) {
 	f.sendCases = append(f.sendCases, f.inbox...)
 	f.inbox = nil
 	f.mu.Unlock()
+
+	log.Info("Bharath: Send cases are", "sendCases", f.sendCases)
 
 	// Set the sent value on all channels.
 	for i := firstSubSendCase; i < len(f.sendCases); i++ {

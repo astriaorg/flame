@@ -210,7 +210,7 @@ type LegacyPool struct {
 	chain            BlockChain
 	gasTip           atomic.Pointer[uint256.Int]
 	txFeed           event.Feed
-	mempoolClearFeed event.Feed
+	mempoolClearFeed event.FeedOf[core.NewMempoolCleared]
 	signer           types.Signer
 	mu               sync.RWMutex
 
@@ -271,6 +271,9 @@ func New(config Config, chain BlockChain, auctioneerEnabled bool) *LegacyPool {
 		initDoneCh:        make(chan struct{}),
 		auctioneerEnabled: auctioneerEnabled,
 	}
+	mempoolClearFeedInbox := pool.mempoolClearFeed.GetInbox()
+	log.Info("Bharath: mempoolClearFeedInbox is", "mempoolClearFeedInbox", mempoolClearFeedInbox)
+
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
 		log.Info("Setting new local account", "address", addr)
@@ -511,8 +514,11 @@ func (pool *LegacyPool) Close() error {
 // Reset implements txpool.SubPool, allowing the legacy pool's internal state to be
 // kept in sync with the main transaction pool's internal state.
 func (pool *LegacyPool) Reset(oldHead, newHead *types.Header) {
+	log.Info("Bharath: In legacy pool Reset!")
 	wait := pool.requestReset(oldHead, newHead)
+	log.Info("Bharath: Blocking in legacy pool Reset!")
 	<-wait
+	log.Info("Bharath: Done waiting for legacy pool Reset!")
 }
 
 // SubscribeTransactions registers a subscription for new transaction events,
@@ -1318,12 +1324,15 @@ func (pool *LegacyPool) scheduleReorgLoop() {
 
 		select {
 		case req := <-pool.reqResetCh:
+			log.Info("Bharath: Received reqResetCh")
 			// Reset request: update head if request is already pending.
 			if reset == nil {
 				reset = req
 			} else {
+				log.Info("Bharath: Setting new head to optimistic head")
 				reset.newHead = req.newHead
 			}
+			log.Info("Bharath: Launching next run")
 			launchNextRun = true
 			pool.reorgDoneCh <- nextDone
 
@@ -1362,6 +1371,7 @@ func (pool *LegacyPool) scheduleReorgLoop() {
 
 // runReorg runs reset and promoteExecutables on behalf of scheduleReorgLoop.
 func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirtyAccounts *accountSet, events map[common.Address]*sortedMap) {
+	log.Info("Bharath: In runReorg")
 	defer func(t0 time.Time) {
 		reorgDurationTimer.Update(time.Since(t0))
 	}(time.Now())
@@ -1418,7 +1428,9 @@ func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, 
 				pendingBaseFee := eip1559.CalcBaseFee(pool.chainconfig, reset.newHead)
 				pool.priced.SetBaseFee(pendingBaseFee)
 			} else {
+				log.Info("Bharath: Reheaping after clearing mempool!")
 				pool.priced.Reheap()
+				log.Info("Bharath: Done reheaping after clearing mempool!")
 			}
 		}
 		// Update all accounts to the latest known pending nonce
@@ -1429,13 +1441,26 @@ func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, 
 		}
 		pool.pendingNonces.setAll(nonces)
 	}
+	log.Info("Bharath: Trunacting pending and queued!")
 	// Ensure pool.queue and pool.pending sizes stay within the configured limits.
 	pool.truncatePending()
 	pool.truncateQueue()
+	log.Info("Bharath: Done truncating pending and queued!")
 
 	dropBetweenReorgHistogram.Update(int64(pool.changesSinceReorg))
 	pool.changesSinceReorg = 0 // Reset change counter
 	pool.mu.Unlock()
+
+	log.Info("Bharath: Notifying subsystems!")
+	if pool.auctioneerEnabled {
+		if reset != nil {
+			log.Info("Bharath: Sending mempool clearance event, just testing upgrade")
+			pool.mempoolClearFeed.Send(core.NewMempoolCleared{
+				NewHead: reset.newHead,
+			})
+			log.Info("Bharath: Sent mempool clearance event!")
+		}
+	}
 
 	// Notify subsystems for newly added transactions
 	for _, tx := range promoted {
@@ -1452,6 +1477,7 @@ func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, 
 		}
 		pool.txFeed.Send(core.NewTxsEvent{Txs: txs})
 	}
+	log.Info("Bharath: Done notifying subsystems!")
 }
 
 // reset retrieves the current state of the blockchain and ensures the content
@@ -1558,6 +1584,7 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 // reset retrieves the current state of the blockchain and ensures the content
 // of the transaction pool is valid with regard to the chain state.
 func (pool *LegacyPool) resetHeadOnly(oldHead, newHead *types.Header) {
+	log.Info("Bharath: In resetHeadOnly")
 	// Initialize the internal state to the current head
 	if newHead == nil {
 		newHead = pool.chain.CurrentBlock() // Special case during testing
@@ -1777,32 +1804,48 @@ func (pool *LegacyPool) truncateQueue() {
 // clearPendingAndQueued removes invalid and processed transactions from the pools
 // it assumes that the pool lock is being held
 func (pool *LegacyPool) clearPendingAndQueued(newHead *types.Header) {
+	log.Info("Bharath: Clearing pending and queued txs")
 	// Iterate over all accounts and demote any non-executable transactions
 	for addr, list := range pool.queue {
-		dropped, invalids := list.ClearList()
-		queuedGauge.Dec(int64(len(dropped) + len(invalids)))
+		//dropped, invalids := list.ClearList()
+		//queuedGauge.Dec(int64(len(dropped) + len(invalids)))
+		//
+		//for _, tx := range dropped {
+		//	pool.removeTx(tx.Hash(), true, true)
+		//}
+		//for _, tx := range invalids {
+		//	pool.removeTx(tx.Hash(), true, true)
+		//}
 
-		for _, tx := range dropped {
-			pool.all.Remove(tx.Hash())
+		for _, tx := range list.Flatten() {
+			pool.removeTx(tx.Hash(), true, true)
 		}
-		for _, tx := range invalids {
-			pool.all.Remove(tx.Hash())
-		}
+
+		//_, hasQueued := pool.queue[addr]
+		//if !hasQueued {
+		//	pool.reserve(addr, false)
+		//}
 
 		if list.Empty() {
 			delete(pool.queue, addr)
+			//pool.reserve(addr, false)
 		}
+
 	}
 
 	for addr, list := range pool.pending {
-		dropped, invalids := list.ClearList()
-		pendingGauge.Dec(int64(len(dropped) + len(invalids)))
+		//dropped, invalids := list.ClearList()
+		//pendingGauge.Dec(int64(len(dropped) + len(invalids)))
 
-		for _, tx := range dropped {
-			pool.all.Remove(tx.Hash())
-		}
-		for _, tx := range invalids {
-			pool.all.Remove(tx.Hash())
+		//for _, tx := range dropped {
+		//	pool.removeTx(tx.Hash(), true, true)
+		//}
+		//for _, tx := range invalids {
+		//	pool.removeTx(tx.Hash(), true, true)
+		//}
+
+		for _, tx := range list.Flatten() {
+			pool.removeTx(tx.Hash(), true, true)
 		}
 
 		if list.Empty() {
@@ -1810,11 +1853,6 @@ func (pool *LegacyPool) clearPendingAndQueued(newHead *types.Header) {
 			delete(pool.beats, addr)
 		}
 	}
-
-	pool.mempoolClearFeed.Send(core.NewMempoolCleared{
-		NewHead: newHead,
-	})
-
 }
 
 // demoteUnexecutables removes invalid and processed transactions from the pools

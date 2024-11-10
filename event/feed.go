@@ -18,6 +18,7 @@ package event
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/log"
 	"reflect"
 	"sync"
 )
@@ -71,6 +72,7 @@ func (f *Feed) init(etype reflect.Type) {
 // The channel should have ample buffer space to avoid blocking other subscribers.
 // Slow subscribers are not dropped.
 func (f *Feed) Subscribe(channel interface{}) Subscription {
+	log.Info("Bharath: Starting to Subscribe", "subscriber", channel, "inbox", f.inbox)
 	chanval := reflect.ValueOf(channel)
 	chantyp := chanval.Type()
 	if chantyp.Kind() != reflect.Chan || chantyp.ChanDir()&reflect.SendDir == 0 {
@@ -79,6 +81,7 @@ func (f *Feed) Subscribe(channel interface{}) Subscription {
 	sub := &feedSub{feed: f, channel: chanval, err: make(chan error, 1)}
 
 	f.once.Do(func() { f.init(chantyp.Elem()) })
+	log.Info("Bharath: Subscribing", "subscriber", chanval, "inbox", f.inbox)
 	if f.etype != chantyp.Elem() {
 		panic(feedTypeError{op: "Subscribe", got: chantyp, want: reflect.ChanOf(reflect.SendDir, f.etype)})
 	}
@@ -88,7 +91,9 @@ func (f *Feed) Subscribe(channel interface{}) Subscription {
 	// Add the select case to the inbox.
 	// The next Send will add it to f.sendCases.
 	cas := reflect.SelectCase{Dir: reflect.SelectSend, Chan: chanval}
+	log.Info("Bharath: Adding subscriber", "subscriber", cas, "inbox", f.inbox)
 	f.inbox = append(f.inbox, cas)
+	log.Info("Bharath: Post adding subscriber", "subscriber", cas, "inbox", f.inbox)
 	return sub
 }
 
@@ -119,6 +124,7 @@ func (f *Feed) remove(sub *feedSub) {
 // It returns the number of subscribers that the value was sent to.
 func (f *Feed) Send(value interface{}) (nsent int) {
 	rvalue := reflect.ValueOf(value)
+	log.Info("Bharath: subscriber inbox is ", "inbox", f.inbox)
 
 	f.once.Do(func() { f.init(rvalue.Type()) })
 	if f.etype != rvalue.Type() {
@@ -132,6 +138,9 @@ func (f *Feed) Send(value interface{}) (nsent int) {
 	f.sendCases = append(f.sendCases, f.inbox...)
 	f.inbox = nil
 	f.mu.Unlock()
+
+	log.Info("Bharath: Number of subscribers", "count", len(f.sendCases)-1)
+	log.Info("Bharath: Subscribers are ", "subscribers", f.sendCases)
 
 	// Set the sent value on all channels.
 	for i := firstSubSendCase; i < len(f.sendCases); i++ {
@@ -148,6 +157,7 @@ func (f *Feed) Send(value interface{}) (nsent int) {
 		// buffer space.
 		for i := firstSubSendCase; i < len(cases); i++ {
 			if cases[i].Chan.TrySend(rvalue) {
+				log.Info("Bharath: Sent to subscriber", "index", i, "subscriber", cases[i].Chan.Interface())
 				nsent++
 				cases = cases.deactivate(i)
 				i--

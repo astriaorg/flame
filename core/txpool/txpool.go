@@ -226,6 +226,9 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 		// Something interesting might have happened, run a reset if there is
 		// one needed but none is running. The resetter will run on its own
 		// goroutine to allow chain head events to be consumed contiguously.
+		log.Info("Bharath: Starting the loop!!")
+		log.Info("Bharath: newHead is ", newHead.Hash().String())
+		log.Info("Bharath: oldHead is ", oldHead.Hash().String())
 		if newHead != oldHead || resetForced {
 			// Try to inject a busy marker and start a reset if successful
 			select {
@@ -233,7 +236,9 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 				// Busy marker injected, start a new subpool reset
 				go func(oldHead, newHead *types.Header) {
 					for _, subpool := range p.subpools {
+						log.Info("Bharath: Resetting the subpool!")
 						subpool.Reset(oldHead, newHead)
+						log.Info("Bharath: Done resetting!!")
 					}
 					resetDone <- newHead
 				}(oldHead, newHead)
@@ -244,17 +249,22 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 				resetForced = false
 
 			default:
+				log.Info("Bharath: Reset already busy!")
 				// Reset already running, wait until it finishes.
 				//
 				// Note, this will not drop any forced reset request. If a forced
 				// reset was requested, but we were busy, then when the currently
 				// running reset finishes, a new one will be spun up.
 			}
+		} else {
+			log.Info("Bharath: No reset needed!")
 		}
+		log.Info("Bharath: Waiting on event!")
 		// Wait for the next chain head event or a previous reset finish
 		select {
 		case event := <-newOptimisticHeadCh:
 			if p.auctioneerEnabled {
+				log.Info("Bharath: Got a new head in the optimistic channel!")
 				// Chain moved forward, store the head for later consumption
 				newHead = event.Block.Header()
 			}
@@ -290,7 +300,10 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 			resetForced = true
 			resetWaiter = syncc
 		}
+		log.Info("Bharath: Done with the loop!")
 	}
+
+	log.Info("Bharath: Escaped the loop!")
 	// Notify the closer of termination (no error possible for now)
 	errc <- nil
 }
@@ -449,14 +462,15 @@ func (p *TxPool) SubscribeTransactions(ch chan<- core.NewTxsEvent, reorgs bool) 
 
 // SubscribeMempoolClearance registers a subscription for new mempool clearance events
 func (p *TxPool) SubscribeMempoolClearance(ch chan<- core.NewMempoolCleared) event.Subscription {
-	subs := []event.Subscription{}
-	for _, subpool := range p.subpools {
-		sub := subpool.SubscribeMempoolClearance(ch)
-		if sub != nil {
-			subs = append(subs, sub)
-		}
-	}
-	return p.subs.Track(event.JoinSubscriptions(subs...))
+	//subs := []event.Subscription{}
+	//for _, subpool := range p.subpools {
+	//	sub := subpool.SubscribeMempoolClearance(ch)
+	//	if sub != nil {
+	//		subs = append(subs, sub)
+	//	}
+	//}
+	log.Info("Bharath: Subscribing to mempool clearance")
+	return p.subs.Track(p.subpools[0].SubscribeMempoolClearance(ch))
 }
 
 // Nonce returns the next nonce of an account, with all transactions executable

@@ -321,6 +321,8 @@ func TestNewExecutionServiceServerV1Alpha2_StreamBundles(t *testing.T) {
 		require.Nil(t, txErr, "Failed to add tx to mempool")
 	}
 
+	time.Sleep(1 * time.Second)
+
 	pending, queued = ethservice.TxPool().Stats()
 	require.Equal(t, pending, 5, "Mempool should have 5 pending txs")
 	require.Equal(t, queued, 0, "Mempool should have 0 queued txs")
@@ -400,6 +402,8 @@ func TestExecutionServiceServerV1Alpha2_StreamExecuteOptimisticBlock(t *testing.
 	for _, err := range errs {
 		require.Nil(t, err, "Failed to add tx to mempool")
 	}
+
+	time.Sleep(2 * time.Second)
 
 	pending, queued := ethservice.TxPool().Stats()
 	require.Equal(t, pending, 5, "Mempool should have 5 pending txs")

@@ -98,6 +98,7 @@ func (o *OptimisticServiceV1Alpha1) GetBundleStream(_ *optimsticPb.GetBundleStre
 }
 
 func (o *OptimisticServiceV1Alpha1) ExecuteOptimisticBlockStream(stream optimisticGrpc.OptimisticExecutionService_ExecuteOptimisticBlockStreamServer) error {
+	log.Info("Bharath: High level ExecuteOptimisticBlockStream called")
 	mempoolClearingEventCh := make(chan core.NewMempoolCleared)
 	mempoolClearingEvent := o.Eth().TxPool().SubscribeMempoolClearance(mempoolClearingEventCh)
 	defer mempoolClearingEvent.Unsubscribe()
@@ -114,11 +115,14 @@ func (o *OptimisticServiceV1Alpha1) ExecuteOptimisticBlockStream(stream optimist
 
 		baseBlock := msg.GetBaseBlock()
 
+		log.Info("ExecuteOptimisticBlockStream called", "base_block", baseBlock)
+
 		// execute the optimistic block and wait for the mempool clearing event
 		optimisticBlock, err := o.ExecuteOptimisticBlock(stream.Context(), baseBlock)
 		if err != nil {
 			return status.Error(codes.Internal, "failed to execute optimistic block")
 		}
+		log.Info("Optimistic block executed", "block_hash", optimisticBlock.Hash)
 		optimisticBlockHash := common.BytesToHash(optimisticBlock.Hash)
 
 		// listen to the mempool clearing event and send the response back to the auctioneer when the mempool is cleared
@@ -128,11 +132,16 @@ func (o *OptimisticServiceV1Alpha1) ExecuteOptimisticBlockStream(stream optimist
 				return status.Error(codes.Internal, "failed to clear mempool after optimistic block execution")
 			}
 			o.currentOptimisticSequencerBlock.Store(&baseBlock.SequencerBlockHash)
+			log.Info("Mempool cleared after optimistic block execution", "block_hash", optimisticBlockHash.String())
 			err = stream.Send(&optimsticPb.ExecuteOptimisticBlockStreamResponse{
 				Block:                  optimisticBlock,
 				BaseSequencerBlockHash: baseBlock.SequencerBlockHash,
 			})
-		case <-time.After(500 * time.Millisecond):
+			if err != nil {
+				return status.Errorf(codes.Internal, "error sending optimistic block response: %v", err)
+			}
+			log.Info("Done sending message over stream!")
+		case <-time.After(10 * time.Second):
 			return status.Error(codes.DeadlineExceeded, "timed out waiting for mempool to clear after optimistic block execution")
 		case err := <-mempoolClearingEvent.Err():
 			return status.Errorf(codes.Internal, "error waiting for mempool clearing event: %v", err)
@@ -145,31 +154,40 @@ func (o *OptimisticServiceV1Alpha1) ExecuteOptimisticBlock(ctx context.Context, 
 	log.Debug("ExecuteOptimisticBlock called", "timestamp", req.Timestamp, "sequencer_block_hash", req.SequencerBlockHash)
 	executeOptimisticBlockRequestCount.Inc(1)
 
+	log.Info("Validating BaseBlock", "base_block", req)
 	if err := validateStaticExecuteOptimisticBlockRequest(req); err != nil {
 		log.Error("ExecuteOptimisticBlock called with invalid BaseBlock", "err", err)
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("BaseBlock is invalid: %s", err.Error()))
 	}
+	log.Info("BaseBlock validated", "base_block", req)
 
+	log.Info("Checking if sync methods are called")
 	if !o.SyncMethodsCalled() {
 		return nil, status.Error(codes.PermissionDenied, "Cannot execute block until GetGenesisInfo && GetCommitmentState methods are called")
 	}
+	log.Info("Sync methods are called")
 
 	// Deliberately called after lock, to more directly measure the time spent executing
 	executionStart := time.Now()
 	defer executionOptimisticBlockTimer.UpdateSince(executionStart)
 
+	log.Info("Getting soft block")
 	o.CommitmentUpdateLock().Lock()
 	// get the soft block
 	softBlock := o.Bc().CurrentSafeBlock()
 	o.CommitmentUpdateLock().Unlock()
+	log.Info("Got soft block", "block_num", softBlock.Number.Uint64(), "hash", softBlock.Hash(), "parent_hash", softBlock.ParentHash)
 
-	o.BlockExecutionLock().Lock()
+	log.Info("Getting fee recipient")
+	//o.BlockExecutionLock().Lock()
 	nextFeeRecipient := o.NextFeeRecipient()
-	o.BlockExecutionLock().Unlock()
+	//o.BlockExecutionLock().Unlock()
+	log.Info("Got fee recipient", "fee_recipient", nextFeeRecipient)
 
 	// the height that this block will be at
 	height := o.Bc().CurrentBlock().Number.Uint64() + 1
 
+	log.Info("Validating sequencer txs")
 	txsToProcess := types.Transactions{}
 	for _, tx := range req.Transactions {
 		unmarshalledTx, err := shared.ValidateAndUnmarshalSequencerTx(height, tx, o.BridgeAddresses(), o.BridgeAllowedAssets())
@@ -186,6 +204,7 @@ func (o *OptimisticServiceV1Alpha1) ExecuteOptimisticBlock(ctx context.Context, 
 
 		txsToProcess = append(txsToProcess, unmarshalledTx)
 	}
+	log.Info("Optimistic block has", "txs", len(txsToProcess))
 
 	// Build a payload to add to the chain
 	payloadAttributes := &miner.BuildPayloadArgs{
@@ -201,12 +220,14 @@ func (o *OptimisticServiceV1Alpha1) ExecuteOptimisticBlock(ctx context.Context, 
 		log.Error("failed to build payload", "err", err)
 		return nil, status.Error(codes.InvalidArgument, "Could not build block with provided txs")
 	}
+	log.Info("Built payload", "payload", payload)
 
 	block, err := engine.ExecutableDataToBlock(*payload.Resolve().ExecutionPayload, nil, nil)
 	if err != nil {
 		log.Error("failed to convert executable data to block", err)
 		return nil, status.Error(codes.Internal, "failed to execute block")
 	}
+	log.Info("Built optimistic block", "block_num", block.NumberU64(), "hash", block.Hash(), "parent_hash", block.ParentHash())
 
 	// this will insert the optimistic block into the chain and persist it's state without
 	// setting it as the HEAD.
@@ -215,10 +236,13 @@ func (o *OptimisticServiceV1Alpha1) ExecuteOptimisticBlock(ctx context.Context, 
 		log.Error("failed to insert block to chain", "hash", block.Hash(), "prevHash", block.ParentHash(), "err", err)
 		return nil, status.Error(codes.Internal, "failed to insert block to chain")
 	}
+	log.Info("Inserted optimistic block", "block_num", block.NumberU64(), "hash", block.Hash(), "parent_hash", block.ParentHash())
 
 	// we store a pointer to the optimistic block in the chain so that we can use it
 	// to retrieve the state of the optimistic block
 	o.Bc().SetOptimistic(block)
+
+	log.Info("ExecuteOptimisticBlock completed", "block_num", block.NumberU64(), "timestamp", block.Time())
 
 	res := &astriaPb.Block{
 		Number:          uint32(block.NumberU64()),

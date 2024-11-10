@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"sync"
+	"sync/atomic"
 )
 
 type SharedServiceContainer struct {
@@ -25,7 +26,8 @@ type SharedServiceContainer struct {
 	bridgeAllowedAssets map[string]struct{}                          // a set of allowed asset IDs structs are left empty
 
 	// TODO: bharath - we could make this an atomic pointer???
-	nextFeeRecipient common.Address // Fee recipient for the next block
+	//nextFeeRecipient common.Address // Fee recipient for the next block
+	nextFeeRecipient atomic.Pointer[common.Address]
 }
 
 func NewSharedServiceContainer(eth *eth.Ethereum) (*SharedServiceContainer, error) {
@@ -96,13 +98,15 @@ func NewSharedServiceContainer(eth *eth.Ethereum) (*SharedServiceContainer, erro
 			}
 		}
 	}
+
 	sharedServiceContainer := &SharedServiceContainer{
 		eth:                 eth,
 		bc:                  bc,
 		bridgeAddresses:     bridgeAddresses,
 		bridgeAllowedAssets: bridgeAllowedAssets,
-		nextFeeRecipient:    nextFeeRecipient,
 	}
+
+	sharedServiceContainer.nextFeeRecipient.Store(&nextFeeRecipient)
 
 	return sharedServiceContainer, nil
 }
@@ -140,16 +144,18 @@ func (s *SharedServiceContainer) CommitmentUpdateLock() *sync.Mutex {
 }
 
 func (s *SharedServiceContainer) BlockExecutionLock() *sync.Mutex {
+	log.Info("block execution lock")
 	return &s.blockExecutionLock
 }
 
 func (s *SharedServiceContainer) NextFeeRecipient() common.Address {
-	return s.nextFeeRecipient
+	return *s.nextFeeRecipient.Load()
 }
 
 // assumes that the block execution lock is being held
 func (s *SharedServiceContainer) SetNextFeeRecipient(nextFeeRecipient common.Address) {
-	s.nextFeeRecipient = nextFeeRecipient
+	//s.nextFeeRecipient = nextFeeRecipient
+	s.nextFeeRecipient.Store(&nextFeeRecipient)
 }
 
 func (s *SharedServiceContainer) BridgeAddresses() map[string]*params.AstriaBridgeAddressConfig {
