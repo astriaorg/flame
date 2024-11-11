@@ -3,7 +3,6 @@ package node
 import (
 	optimisticGrpc "buf.build/gen/go/astria/execution-apis/grpc/go/astria/bundle/v1alpha1/bundlev1alpha1grpc"
 	"net"
-	"os"
 	"sync"
 
 	astriaGrpc "buf.build/gen/go/astria/execution-apis/grpc/go/astria/execution/v1/executionv1grpc"
@@ -47,10 +46,10 @@ func NewGRPCServerHandler(node *Node, execServ astriaGrpc.ExecutionServiceServer
 	}
 
 	astriaGrpc.RegisterExecutionServiceServer(execServer, execServ)
-	if cfg.EnableAuctioneer {
-		optimisticGrpc.RegisterOptimisticExecutionServiceServer(optimisticServer, optimisticExecServ)
-		optimisticGrpc.RegisterBundleServiceServer(optimisticServer, streamBundleServ)
-	}
+	//if cfg.EnableAuctioneer {
+	optimisticGrpc.RegisterOptimisticExecutionServiceServer(execServer, optimisticExecServ)
+	optimisticGrpc.RegisterBundleServiceServer(execServer, streamBundleServ)
+	//}
 
 	node.RegisterGRPCServer(serverHandler)
 	return nil
@@ -74,17 +73,17 @@ func (handler *GRPCServerHandler) Start() error {
 		return err
 	}
 
-	if handler.enableAuctioneer {
-		// Remove any existing socket file
-		if err := os.RemoveAll(handler.udsEndpoint); err != nil {
-			return err
-		}
-		udsLis, err := net.Listen("unix", handler.udsEndpoint)
-		if err != nil {
-			return err
-		}
-		go handler.optimisticServer.Serve(udsLis)
-	}
+	//if handler.enableAuctioneer {
+	//	// Remove any existing socket file
+	//	if err := os.RemoveAll(handler.udsEndpoint); err != nil {
+	//		return err
+	//	}
+	//	udsLis, err := net.Listen("unix", handler.udsEndpoint)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	go handler.optimisticServer.Serve(udsLis)
+	//}
 
 	go handler.execServer.Serve(tcpLis)
 	// TODO - fix this log

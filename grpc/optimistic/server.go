@@ -35,6 +35,9 @@ type OptimisticServiceV1Alpha1 struct {
 	sharedServiceContainer *shared.SharedServiceContainer
 
 	currentOptimisticSequencerBlock atomic.Pointer[[]byte]
+
+	executeBlockStreamConnected atomic.Bool
+	bundleStreamConnected       atomic.Bool
 }
 
 var (
@@ -50,11 +53,20 @@ func NewOptimisticServiceV1Alpha(sharedServiceContainer *shared.SharedServiceCon
 	}
 
 	optimisticService.currentOptimisticSequencerBlock.Store(&[]byte{})
+	optimisticService.bundleStreamConnected.Store(false)
+	optimisticService.executeBlockStreamConnected.Store(false)
 
 	return optimisticService
 }
 
 func (o *OptimisticServiceV1Alpha1) GetBundleStream(_ *optimsticPb.GetBundleStreamRequest, stream optimisticGrpc.BundleService_GetBundleStreamServer) error {
+	if !o.bundleStreamConnected.CompareAndSwap(false, true) {
+		return status.Error(codes.PermissionDenied, "Bundle stream already connected")
+	}
+
+	// when the stream is closed, we need to set the bundleStreamConnected to false
+	defer o.bundleStreamConnected.Store(false)
+
 	pendingTxEventCh := make(chan core.NewTxsEvent)
 	pendingTxEvent := o.Eth().TxPool().SubscribeTransactions(pendingTxEventCh, false)
 	defer pendingTxEvent.Unsubscribe()
@@ -93,14 +105,25 @@ func (o *OptimisticServiceV1Alpha1) GetBundleStream(_ *optimsticPb.GetBundleStre
 
 		case err := <-pendingTxEvent.Err():
 			return status.Errorf(codes.Internal, "error waiting for pending transactions: %v", err)
+		case <-stream.Context().Done():
+			return stream.Context().Err()
 		}
 	}
 }
 
 func (o *OptimisticServiceV1Alpha1) ExecuteOptimisticBlockStream(stream optimisticGrpc.OptimisticExecutionService_ExecuteOptimisticBlockStreamServer) error {
+	if !o.executeBlockStreamConnected.CompareAndSwap(false, true) {
+		return status.Error(codes.PermissionDenied, "Execute optimistic block stream already connected")
+	}
+
+	defer o.executeBlockStreamConnected.Store(false)
+
 	mempoolClearingEventCh := make(chan core.NewMempoolCleared)
 	mempoolClearingEvent := o.Eth().TxPool().SubscribeMempoolClearance(mempoolClearingEventCh)
 	defer mempoolClearingEvent.Unsubscribe()
+
+	// TODO - only the auctioneer should be able to connect to this. We should maintain a variable
+	// which checks if a server has already connected to the stream APIs. If so, we should error out.
 
 	for {
 		msg, err := stream.Recv()
