@@ -53,6 +53,9 @@ type testBackend struct {
 func (b *testBackend) ChainConfig() *params.ChainConfig {
 	return params.TestChainConfig
 }
+func (b *testBackend) AuctioneerEnabled() bool {
+	return false
+}
 
 func (b *testBackend) CurrentHeader() *types.Header {
 	hdr, _ := b.HeaderByNumber(context.TODO(), rpc.LatestBlockNumber)

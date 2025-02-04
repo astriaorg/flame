@@ -465,6 +465,12 @@ func (b *testBackend) setPendingBlock(block *types.Block) {
 	b.pending = block
 }
 
+func (b testBackend) AuctioneerEnabled() bool {
+	// TODO - we should be able to write api tests considering whether auctioneer is enabled or not.
+	// this will be necessary as we add json-rpc methods specific to auctioneer
+	return false
+}
+
 func (b testBackend) SyncProgress() ethereum.SyncProgress { return ethereum.SyncProgress{} }
 func (b testBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	return big.NewInt(0), nil

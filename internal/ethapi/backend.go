@@ -53,6 +53,7 @@ type Backend interface {
 	RPCEVMTimeout() time.Duration // global timeout for eth_call over rpc: DoS protection
 	RPCTxFeeCap() float64         // global tx fee cap for all transaction related APIs
 	UnprotectedAllowed() bool     // allows only for EIP155 transactions.
+	AuctioneerEnabled() bool      // returns true if the node is running as an auctioneer
 
 	// Blockchain API
 	SetHead(number uint64)
@@ -101,7 +102,8 @@ type Backend interface {
 
 func GetAPIs(apiBackend Backend) []rpc.API {
 	nonceLock := new(AddrLocker)
-	return []rpc.API{
+
+	apis := []rpc.API{
 		{
 			Namespace: "eth",
 			Service:   NewEthereumAPI(apiBackend),
@@ -111,9 +113,6 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 		}, {
 			Namespace: "eth",
 			Service:   NewTransactionAPI(apiBackend, nonceLock),
-		}, {
-			Namespace: "txpool",
-			Service:   NewTxPoolAPI(apiBackend),
 		}, {
 			Namespace: "debug",
 			Service:   NewDebugAPI(apiBackend),
@@ -125,4 +124,13 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Service:   NewPersonalAccountAPI(apiBackend, nonceLock),
 		},
 	}
+
+	if !apiBackend.AuctioneerEnabled() {
+		apis = append(apis, rpc.API{
+			Namespace: "txpool",
+			Service:   NewTxPoolAPI(apiBackend),
+		})
+	}
+
+	return apis
 }

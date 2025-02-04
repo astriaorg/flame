@@ -64,6 +64,10 @@ func (b *EthAPIBackend) SetHead(number uint64) {
 	b.eth.blockchain.SetHead(number)
 }
 
+func (b *EthAPIBackend) AuctioneerEnabled() bool {
+	return b.eth.AuctioneerEnabled()
+}
+
 func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	// Pending block is only known by the miner
 	if number == rpc.PendingBlockNumber {
