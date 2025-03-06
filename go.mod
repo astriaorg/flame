@@ -3,8 +3,8 @@ module github.com/ethereum/go-ethereum
 go 1.21
 
 require (
-	buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-00000000000000-f71d210402a3.2
-	buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.36.5-00000000000000-f71d210402a3.1
+	buf.build/gen/go/astria/execution-apis/grpc/go v1.5.1-00000000000000-7b804b497fd2.2
+	buf.build/gen/go/astria/execution-apis/protocolbuffers/go v1.36.5-00000000000000-7b804b497fd2.1
 	buf.build/gen/go/astria/primitives/protocolbuffers/go v1.36.5-00000000000000-9a039a6ed8db.1
 	buf.build/gen/go/astria/sequencerblock-apis/protocolbuffers/go v1.36.5-00000000000000-e54e1c9ad405.1
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.2.0
@@ -85,7 +85,6 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
 	github.com/DataDog/zstd v1.4.5 // indirect
@@ -101,8 +100,6 @@ require (
 	github.com/aws/smithy-go v1.15.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
-	github.com/btcsuite/btcd v0.24.2 // indirect
-	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cockroachdb/errors v1.11.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
@@ -123,7 +120,6 @@ require (
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.4 // indirect
-	github.com/hdevalence/ed25519consensus v0.2.0 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
