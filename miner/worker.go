@@ -332,7 +332,6 @@ func (miner *Miner) commitAstriaTransactions(env *environment, txs *types.Transa
 		env.state.SetTxContext(tx.Hash(), env.tcount)
 
 		err := miner.commitTransaction(env, tx)
-		log.Debug("BHARATH: tx err is ", "err", err)
 		switch {
 		case errors.Is(err, core.ErrNonceTooLow):
 			// New head notification data race between the transaction pool and miner, shift
