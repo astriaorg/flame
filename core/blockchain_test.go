@@ -168,8 +168,7 @@ func testBlockChainImport(chain types.Blocks, blockchain *BlockChain) error {
 			blockchain.reportBlock(block, receipts, err)
 			return err
 		}
-		err = blockchain.validator.ValidateState(block, statedb, receipts, usedGas)
-		if err != nil {
+		if err = blockchain.validator.ValidateState(block, statedb, receipts, usedGas, false); err != nil {
 			blockchain.reportBlock(block, receipts, err)
 			return err
 		}
@@ -4220,6 +4219,7 @@ func TestEIP3651(t *testing.T) {
 	actual := state.GetBalance(block.Coinbase())
 
 	totalBaseFee := new(big.Int).SetUint64(block.GasUsed() * block.BaseFee().Uint64())
+
 	expected := new(big.Int).SetUint64(block.GasUsed() * block.Transactions()[0].GasTipCap().Uint64())
 	expected = expected.Add(expected, totalBaseFee)
 	if actual.Cmp(uint256.MustFromBig(expected)) != 0 {
